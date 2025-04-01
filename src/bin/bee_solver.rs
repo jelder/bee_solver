@@ -12,11 +12,7 @@ struct Cli {
 
 pub fn main() -> () {
     let cli = Cli::parse();
-    let ring: [char; 6] = cli.ring.chars().collect::<Vec<char>>().try_into().unwrap();
-    let game = bee_solver::Game {
-        center: cli.center,
-        ring,
-    };
+    let game = bee_solver::Game::new(cli.center, &cli.ring);
 
     let mut plays_by_score = std::collections::BTreeMap::new();
     for play in game.plays() {

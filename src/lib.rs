@@ -15,6 +15,13 @@ pub struct Game {
 }
 
 impl Game {
+    pub fn new(center: char, ring: &String) -> Self {
+        Game {
+            center,
+            ring: ring.chars().collect::<Vec<char>>().try_into().unwrap(),
+        }
+    }
+
     fn to_regex(&self) -> Regex {
         Regex::new(&format!(
             "^[{center}{ring}]*$",
