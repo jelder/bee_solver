@@ -81,7 +81,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn game() {
         let game = Game {
             center: 'a',
             ring: ['h', 'n', 'p', 'd', 'o', 'e'],
@@ -90,5 +90,13 @@ mod tests {
         assert!(!plays.is_empty());
         assert_eq!(plays[0].0, "openhanded");
         assert_eq!(plays[0].is_pangram(), true);
+        assert_eq!(plays[0].score(), 17);
+    }
+
+    #[test]
+    fn dict() {
+        let dict = get_dict();
+        assert!(!dict.is_empty());
+        assert_eq!(dict.last().unwrap(), "zythum");
     }
 }

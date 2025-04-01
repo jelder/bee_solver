@@ -1,3 +1,4 @@
+use bee_solver::Game;
 use clap::Parser;
 
 #[derive(Parser)]
@@ -22,7 +23,7 @@ fn validate_ring(ring: &str) -> Result<(), String> {
 
 pub fn main() -> () {
     let cli = Cli::parse();
-    let game = bee_solver::Game::new(cli.center, &cli.ring);
+    let game = Game::new(cli.center, &cli.ring);
 
     let mut plays_by_score = std::collections::BTreeMap::new();
     for play in game.plays() {
