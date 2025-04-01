@@ -63,7 +63,7 @@ impl Play {
         let mut seen = HashSet::new();
         for c in self.0.chars() {
             seen.insert(c);
-            if seen.len = 7 {
+            if seen.len() = 7 {
                 return true
             }
         }
