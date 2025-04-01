@@ -33,7 +33,6 @@ impl Game {
 
     pub fn plays(&self) -> Vec<Play> {
         let regex = self.to_regex();
-        dbg!(&regex);
         let mut plays: Vec<Play> = get_dict()
             .into_iter()
             .filter(|word| word.contains(self.center))
