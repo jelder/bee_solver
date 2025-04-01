@@ -1,13 +1,18 @@
 use regex::Regex;
 use std::collections::HashSet;
+use wasm_bindgen::prelude::*;
 
-const DICT_ZSTD: &[u8] = include_bytes!("../dict.txt.zst");
-
-pub fn get_dict() -> Vec<String> {
-    let dict = zstd::decode_all(DICT_ZSTD).expect("Failed to decode dictionary");
-    let dict = String::from_utf8_lossy(&dict);
-    return dict.lines().map(|s| s.to_string()).collect();
+#[wasm_bindgen]
+extern "C" {
+    pub fn alert(s: &str);
 }
+
+#[wasm_bindgen]
+pub fn greet(name: &str) {
+    alert(&format!("Hello, {}!", name));
+}
+
+const DICT: &[u8] = include_bytes!("../dict.txt");
 
 pub struct Game {
     pub center: char,
@@ -38,8 +43,8 @@ impl Game {
 
     pub fn plays(&self) -> Vec<Play> {
         let regex = self.to_regex();
-        let mut plays: Vec<Play> = get_dict()
-            .into_iter()
+        let mut plays: Vec<Play> = String::from_utf8_lossy(&DICT)
+            .lines()
             .filter(|word| word.contains(self.center))
             .filter(|word| regex.is_match(word))
             .map(|word| Play(word.to_string()))
@@ -95,8 +100,9 @@ mod tests {
 
     #[test]
     fn dict() {
-        let dict = get_dict();
-        assert!(!dict.is_empty());
-        assert_eq!(dict.last().unwrap(), "zythum");
+        assert_eq!(
+            String::from_utf8_lossy(&DICT).lines().last().unwrap(),
+            "zythum"
+        );
     }
 }
