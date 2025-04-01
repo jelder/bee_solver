@@ -1,0 +1,13 @@
+[package]
+name = "bee_solver"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.34", features = ["derive", "wrap_help"] }
+regex = "1.11.1"
+zstd = "0.13.3"
+
+[[bin]]
+name = "bee_solver"
+path = "src/bin/bee_solver.rs"
