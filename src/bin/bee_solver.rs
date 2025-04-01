@@ -8,7 +8,16 @@ struct Cli {
     center: char,
 
     /// the ring letters
+    #[clap(value_parser = validate_ring)]
     ring: String,
+}
+
+fn validate_ring(ring: &str) -> Result<(), String> {
+    if ring.len() == 6 && ring.chars().all(|c| c.is_alphabetic()) {
+        Ok(())
+    } else {
+        Err(String::from("Ring must contain exactly 6 letters"))
+    }
 }
 
 pub fn main() -> () {

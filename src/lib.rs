@@ -17,8 +17,13 @@ pub struct Game {
 impl Game {
     pub fn new(center: char, ring: &String) -> Self {
         Game {
-            center,
-            ring: ring.chars().collect::<Vec<char>>().try_into().unwrap(),
+            center: center.to_ascii_lowercase(),
+            ring: ring
+                .to_ascii_lowercase()
+                .chars()
+                .collect::<Vec<char>>()
+                .try_into()
+                .unwrap(),
         }
     }
 

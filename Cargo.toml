@@ -14,3 +14,6 @@ zstd = "0.13.3"
 [[bin]]
 name = "bee_solver"
 path = "src/bin/bee_solver.rs"
+
+[profile.release]
+lto = true
