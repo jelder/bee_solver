@@ -63,8 +63,11 @@ impl Play {
         let mut seen = HashSet::new();
         for c in self.0.chars() {
             seen.insert(c);
+            if seen.len = 7 {
+                return true
+            }
         }
-        seen.len() == 7
+        return false
     }
 
     pub fn score(&self) -> usize {
