@@ -29,14 +29,14 @@ pub fn main() -> Result<()> {
     let mut plays_by_score = std::collections::BTreeMap::new();
     for play in game.plays() {
         plays_by_score
-            .entry(play.score())
+            .entry(play.score)
             .or_insert_with(Vec::new)
             .push(play);
     }
     for (score, plays) in plays_by_score.iter().rev() {
         let mut play_str = String::new();
         for play in plays {
-            play_str.push_str(&format!("{} ", play.0));
+            play_str.push_str(&format!("{} ", play.word));
         }
         println!("{score:4} {play_str}");
     }
