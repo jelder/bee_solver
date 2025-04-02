@@ -13,7 +13,7 @@ pub fn greet(name: &str) {
     alert(&format!("Hello, {}!", name));
 }
 
-const DICT: &[u8] = include_bytes!("../dict.txt");
+static DICT: &str = include_str!("../dict.txt");
 
 pub struct Game {
     pub center: char,
@@ -21,7 +21,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(center: char, ring: &String) -> Result<Self> {
+    pub fn new(center: char, ring: &str) -> Result<Self> {
         let ring_chars: Vec<char> = ring.chars().collect();
         if ring_chars.len() != 6 {
             anyhow::bail!("Ring must contain exactly 6 characters");
@@ -47,11 +47,11 @@ impl Game {
 
     pub fn plays(&self) -> Vec<Play> {
         let regex = self.to_regex();
-        let mut plays: Vec<Play> = String::from_utf8_lossy(&DICT)
+        let mut plays: Vec<Play> = DICT
             .lines()
             .filter(|word| word.contains(self.center))
             .filter(|word| regex.is_match(word))
-            .map(|word| Play(word.to_string()))
+            .map(|word| Play(word))
             .collect();
 
         plays.sort_by_key(|play| play.score());
@@ -60,7 +60,7 @@ impl Game {
     }
 }
 
-pub struct Play(pub String);
+pub struct Play(pub &'static str);
 
 impl Play {
     pub fn is_pangram(&self) -> bool {
@@ -68,10 +68,10 @@ impl Play {
         for c in self.0.chars() {
             seen.insert(c);
             if seen.len() == 7 {
-                return true
+                return true;
             }
         }
-        return false
+        return false;
     }
 
     pub fn score(&self) -> usize {
@@ -107,9 +107,6 @@ mod tests {
 
     #[test]
     fn dict() {
-        assert_eq!(
-            String::from_utf8_lossy(&DICT).lines().last().unwrap(),
-            "zythum"
-        );
+        assert_eq!(DICT.lines().last().unwrap(), "zythum");
     }
 }
