@@ -3,7 +3,7 @@ name = "bee_solver"
 description = "Solver for the NYT Spelling Bee"
 authors = ["Jacob Elder"]
 repository = "https://github.com/jelder/bee_solver"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
