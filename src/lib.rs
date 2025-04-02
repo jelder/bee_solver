@@ -1,3 +1,4 @@
+use anyhow::Result;
 use regex::Regex;
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
@@ -20,16 +21,19 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(center: char, ring: &String) -> Self {
-        Game {
-            center: center.to_ascii_lowercase(),
-            ring: ring
-                .to_ascii_lowercase()
-                .chars()
-                .collect::<Vec<char>>()
-                .try_into()
-                .unwrap(),
+    pub fn new(center: char, ring: &String) -> Result<Self> {
+        let ring_chars: Vec<char> = ring.chars().collect();
+        if ring_chars.len() != 6 {
+            anyhow::bail!("Ring must contain exactly 6 characters");
         }
+        let ring: [char; 6] = ring_chars
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Failed to convert ring to array of 6 characters"))?;
+
+        Ok(Game {
+            center: center.to_ascii_lowercase(),
+            ring,
+        })
     }
 
     fn to_regex(&self) -> Regex {

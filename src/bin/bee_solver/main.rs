@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use bee_solver::Game;
 use clap::Parser;
 
@@ -13,17 +14,17 @@ struct Cli {
     ring: String,
 }
 
-fn validate_ring(ring: &str) -> Result<(), String> {
+fn validate_ring(ring: &str) -> Result<String> {
     if ring.len() == 6 && ring.chars().all(|c| c.is_alphabetic()) {
-        Ok(())
+        Ok(String::from(ring))
     } else {
-        Err(String::from("Ring must contain exactly 6 letters"))
+        bail!("Ring must contain exactly 6 letters")
     }
 }
 
-pub fn main() -> () {
+pub fn main() -> Result<()> {
     let cli = Cli::parse();
-    let game = Game::new(cli.center, &cli.ring);
+    let game = Game::new(cli.center, &cli.ring)?;
 
     let mut plays_by_score = std::collections::BTreeMap::new();
     for play in game.plays() {
@@ -39,4 +40,5 @@ pub fn main() -> () {
         }
         println!("{score:4} {play_str}");
     }
+    Ok(())
 }
