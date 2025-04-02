@@ -1,16 +1,23 @@
-use anyhow::Result;
+use gloo_utils::format::JsValueSerdeExt;
+use itertools::Itertools;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use thiserror::Error;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-extern "C" {
-    pub fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+pub fn get_plays(core: &str, ring: &str) -> Result<JsValue, GameError> {
+    let core = match core.chars().exactly_one() {
+        Ok(c) => c,
+        Err(_) => return Err(GameError::InvalidCenterCharacter),
+    };
+    let game = match Game::new(core, ring) {
+        Ok(game) => game,
+        Err(e) => return Err(e),
+    };
+    let plays = game.plays();
+    JsValue::from_serde(&plays).map_err(|_e| GameError::Unknown)
 }
 
 static DICT: &str = include_str!("../dict.txt");
@@ -20,15 +27,29 @@ pub struct Game {
     pub ring: [char; 6],
 }
 
+#[derive(Error, Debug)]
+#[wasm_bindgen]
+pub enum GameError {
+    #[error("Invalid center character")]
+    InvalidCenterCharacter,
+    #[error("Invalid ring length")]
+    InvalidRingLength,
+    #[error("Invalid ring characters")]
+    InvalidRingCharacters,
+    #[error("Unknown error")]
+    Unknown,
+}
+
 impl Game {
-    pub fn new(center: char, ring: &str) -> Result<Self> {
+    pub fn new(center: char, ring: &str) -> Result<Self, GameError> {
         let ring_chars: Vec<char> = ring.chars().collect();
         if ring_chars.len() != 6 {
-            anyhow::bail!("Ring must contain exactly 6 characters");
+            return Err(GameError::InvalidRingLength);
         }
-        let ring: [char; 6] = ring_chars
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("Failed to convert ring to array of 6 characters"))?;
+        let ring: [char; 6] = match ring_chars.try_into() {
+            Ok(arr) => arr,
+            Err(_) => return Err(GameError::InvalidRingCharacters),
+        };
 
         Ok(Game {
             center: center.to_ascii_lowercase(),
@@ -60,6 +81,8 @@ impl Game {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+#[wasm_bindgen]
 pub struct Play {
     pub word: &'static str,
     pub score: usize,

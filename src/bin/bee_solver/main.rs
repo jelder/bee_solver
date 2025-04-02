@@ -1,5 +1,4 @@
 use ansi_term::Style;
-use anyhow::{bail, Result};
 use bee_solver::Game;
 use clap::Parser;
 
@@ -15,17 +14,23 @@ struct Cli {
     ring: String,
 }
 
-fn validate_ring(ring: &str) -> Result<String> {
+fn validate_ring(ring: &str) -> Result<String, String> {
     if ring.len() == 6 && ring.chars().all(|c| c.is_alphabetic()) {
         Ok(String::from(ring))
     } else {
-        bail!("Ring must contain exactly 6 letters")
+        Err("Ring must contain exactly 6 letters".into())
     }
 }
 
-pub fn main() -> Result<()> {
+pub fn main() {
     let cli = Cli::parse();
-    let game = Game::new(cli.center, &cli.ring)?;
+    let game = match Game::new(cli.center, &cli.ring) {
+        Ok(game) => game,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    };
     let bold = Style::new().bold();
 
     let mut plays_by_score = std::collections::BTreeMap::new();
@@ -49,5 +54,4 @@ pub fn main() -> Result<()> {
         }
         println!("{score:4} {play_str}");
     }
-    Ok(())
 }
