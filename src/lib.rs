@@ -82,7 +82,6 @@ impl Game {
 }
 
 #[derive(Serialize, Deserialize)]
-#[wasm_bindgen]
 pub struct Play {
     pub word: &'static str,
     pub score: usize,
