@@ -1,3 +1,4 @@
+use ansi_term::Style;
 use anyhow::{bail, Result};
 use bee_solver::Game;
 use clap::Parser;
@@ -25,6 +26,7 @@ fn validate_ring(ring: &str) -> Result<String> {
 pub fn main() -> Result<()> {
     let cli = Cli::parse();
     let game = Game::new(cli.center, &cli.ring)?;
+    let bold = Style::new().bold();
 
     let mut plays_by_score = std::collections::BTreeMap::new();
     for play in game.plays() {
@@ -36,7 +38,14 @@ pub fn main() -> Result<()> {
     for (score, plays) in plays_by_score.iter().rev() {
         let mut play_str = String::new();
         for play in plays {
-            play_str.push_str(&format!("{} ", play.word));
+            play_str.push_str(&format!(
+                "{} ",
+                if play.is_pangram {
+                    bold.paint(play.word)
+                } else {
+                    Style::default().paint(play.word)
+                }
+            ));
         }
         println!("{score:4} {play_str}");
     }
