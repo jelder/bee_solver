@@ -42,7 +42,7 @@ pub enum GameError {
 
 impl Game {
     pub fn new(center: char, ring: &str) -> Result<Self, GameError> {
-        let ring_chars: Vec<char> = ring.chars().collect();
+        let ring_chars: Vec<char> = ring.to_ascii_lowercase().chars().collect();
         if ring_chars.len() != 6 {
             return Err(GameError::InvalidRingLength);
         }
@@ -60,8 +60,8 @@ impl Game {
     fn to_regex(&self) -> Regex {
         Regex::new(&format!(
             "^[{center}{ring}]*$",
-            center = self.center,
-            ring = self.ring.iter().collect::<String>()
+            center = self.center.to_ascii_lowercase(),
+            ring = self.ring.iter().collect::<String>().to_ascii_lowercase()
         ))
         .expect("Failed to create regex")
     }
