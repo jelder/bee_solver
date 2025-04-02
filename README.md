@@ -9,3 +9,9 @@ This uses a slightly larger dictionary than the real game, but the same scoring 
 ```
 cargo install bee_solver
 ```
+
+### Web Mode
+
+```
+wasm-pack build --release --target web
+```
