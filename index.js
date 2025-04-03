@@ -5,15 +5,45 @@ class BeeSolver extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
+      <style>
+        :host {
+          --bs-ls: 2ch;
+          --bs-gap: 1.25;
+          --bs-fz: 1.5em;
+          --_bs-bgsz: calc(var(--bs-ls) + 1ch);
+        }
+        :host input:where([type=text]) {
+          all: unset;
+          text-transform: uppercase;
+          caret-color: var(--bs-cc, #333);
+          clip-path: inset(0% calc(var(--bs-ls) / 2) 0% 0%);
+          font-family: ui-monospace, monospace;
+          font-size: var(--bs-fz, 2.5em);
+          inline-size: calc(var(--bs-digits) * var(--_bs-bgsz));
+          letter-spacing: var(--bs-ls);
+          padding-block: var(--bs-pb, 1ch);
+          padding-inline-start: calc(((var(--bs-ls) - 1ch) / 2) * var(--bs-gap));
+        }
+        :host input:where([id=core]) {
+          --bs-digits: 1;
+          --bs-bg: rgb(247, 218, 33);
+          background: linear-gradient(90deg, 
+            var(--bs-bg) calc(var(--bs-gap) * var(--bs-ls)),
+            transparent 0
+          ) 0 0 / var(--_bs-bgsz) 100%;
+        }
+        :host input:where([id=ring]) {
+          --bs-digits: 6;
+          --bs-bg: #EEE;
+          background: linear-gradient(90deg, 
+            var(--bs-bg) calc(var(--bs-gap) * var(--bs-ls)),
+            transparent 0
+          ) 0 0 / var(--_bs-bgsz) 100%;
+        }
+      </style>
       <form id="inputForm">
-        <div>
-        <label for="core">Center:</label>
-        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" placeholder="o">
-        </div>
-        <div>
-        <label for="ring">Ring:</label>
-        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" placeholder="zntcia">
-        </div>
+        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" value="A" spellcheck="false">
+        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" value="KMOBCE" spellcheck="false">
       </form>
       <div id="results"></div>
     `;
@@ -24,6 +54,7 @@ class BeeSolver extends HTMLElement {
     this.resultsContainer = this.shadowRoot.getElementById("results");
 
     this.updateTable = this.updateTable.bind(this);
+    this.updateTable();
   }
 
   connectedCallback() {
@@ -36,6 +67,7 @@ class BeeSolver extends HTMLElement {
 
   async updateTable() {
     await init();
+
     const core = this.coreInput.value.trim();
     const ring = this.ringInput.value.trim();
 
@@ -52,12 +84,8 @@ class BeeSolver extends HTMLElement {
       return acc;
     }, {});
 
-    // Clear existing results
     this.resultsContainer.innerHTML = "";
-
-    // Create a new table
     const table = document.createElement("table");
-    table.border = "0";
 
     // Populate table rows
     for (const [score, plays] of Object.entries(groupedByScore).reverse()) {
@@ -73,7 +101,6 @@ class BeeSolver extends HTMLElement {
         .join(", ");
     }
 
-    // Append the table to the results container
     this.resultsContainer.appendChild(table);
   }
 }
