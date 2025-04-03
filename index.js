@@ -7,20 +7,20 @@ class BeeSolver extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <form id="inputForm">
         <div>
-        <label for="centerLetter">Center Letter:</label>
-        <input type="text" id="centerLetter" required minlength="1" maxlength="1" placeholder="o">
+        <label for="core">Center:</label>
+        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" placeholder="o">
         </div>
         <div>
-        <label for="outerLetters">Outer Letters:</label>
-        <input type="text" id="outerLetters" required minlength="6" maxlength="6" placeholder="zntcia">
+        <label for="ring">Ring:</label>
+        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" placeholder="zntcia">
         </div>
       </form>
       <div id="results"></div>
     `;
 
     this.form = this.shadowRoot.getElementById("inputForm");
-    this.centerLetterInput = this.shadowRoot.getElementById("centerLetter");
-    this.outerLettersInput = this.shadowRoot.getElementById("outerLetters");
+    this.coreInput = this.shadowRoot.getElementById("core");
+    this.ringInput = this.shadowRoot.getElementById("ring");
     this.resultsContainer = this.shadowRoot.getElementById("results");
 
     this.updateTable = this.updateTable.bind(this);
@@ -36,12 +36,12 @@ class BeeSolver extends HTMLElement {
 
   async updateTable() {
     await init();
-    const centerLetter = this.centerLetterInput.value.trim();
-    const outerLetters = this.outerLettersInput.value.trim();
+    const core = this.coreInput.value.trim();
+    const ring = this.ringInput.value.trim();
 
-    if (!centerLetter || !outerLetters || outerLetters.length != 6) return;
+    if (!core || !ring || ring.length != 6) return;
 
-    const plays = get_plays(centerLetter, outerLetters);
+    const plays = get_plays(core, ring);
 
     // Group plays by score
     const groupedByScore = plays.reduce((acc, play) => {
