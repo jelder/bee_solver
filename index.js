@@ -42,8 +42,8 @@ class BeeSolver extends HTMLElement {
         }
       </style>
       <form id="inputForm">
-        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" value="A" spellcheck="false">
-        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" value="KMOBCE" spellcheck="false">
+        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" spellcheck="false">
+        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" spellcheck="false">
       </form>
       <div id="results"></div>
     `;
@@ -54,7 +54,18 @@ class BeeSolver extends HTMLElement {
     this.resultsContainer = this.shadowRoot.getElementById("results");
 
     this.updateTable = this.updateTable.bind(this);
-    this.updateTable();
+
+    this.coreInput.value = "A";
+    const simulateInput = async (inputElement, value) => {
+      for (let i = 0; i < value.length; i++) {
+        inputElement.value = value.slice(0, i + 1);
+        inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate typing delay
+      }
+    };
+
+    this.ringInput.value = "";
+    simulateInput(this.ringInput, "KMOBCE");
   }
 
   connectedCallback() {
@@ -66,13 +77,12 @@ class BeeSolver extends HTMLElement {
   }
 
   async updateTable() {
-    await init();
-
     const core = this.coreInput.value.trim();
     const ring = this.ringInput.value.trim();
 
     if (!core || !ring || ring.length != 6) return;
 
+    await init();
     const plays = get_plays(core, ring);
 
     // Group plays by score
