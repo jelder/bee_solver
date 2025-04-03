@@ -24,16 +24,16 @@ pub fn get_plays(core: &str, ring: &str) -> Result<JsValue, GameError> {
 }
 
 static COMPRESSED_DICT: &[u8] = include_bytes!("../dict.txt.gz");
-static DICT: OnceLock<Vec<String>> = OnceLock::new();
+static DICT: OnceLock<String> = OnceLock::new();
 
-fn get_dict() -> &'static Vec<String> {
+fn get_dict() -> &'static str {
     DICT.get_or_init(|| {
         let decoder = Decoder::new(COMPRESSED_DICT).expect("Failed to create gzip decoder");
         let mut decompressed = String::new();
         std::io::BufReader::new(decoder)
             .read_to_string(&mut decompressed)
             .expect("Failed to decompress dictionary");
-        decompressed.lines().map(String::from).collect()
+        decompressed
     })
 }
 
@@ -84,7 +84,7 @@ impl Game {
     pub fn plays(&self) -> Vec<Play> {
         let regex = self.to_regex();
         let mut plays: Vec<Play> = get_dict()
-            .iter()
+            .lines()
             .filter(|word| word.contains(self.center))
             .filter(|word| regex.is_match(word))
             .map(|word| Play::new(word))
@@ -158,6 +158,6 @@ mod tests {
 
     #[test]
     fn dict() {
-        assert_eq!(get_dict().last().unwrap(), "zythum");
+        assert_eq!(get_dict().lines().last().unwrap(), "zythum");
     }
 }
