@@ -1,8 +1,11 @@
 use gloo_utils::format::JsValueSerdeExt;
 use itertools::Itertools;
+use libflate::gzip::Decoder;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::io::Read;
+use std::sync::OnceLock;
 use thiserror::Error;
 use wasm_bindgen::prelude::*;
 
@@ -20,7 +23,19 @@ pub fn get_plays(core: &str, ring: &str) -> Result<JsValue, GameError> {
     JsValue::from_serde(&plays).map_err(|_e| GameError::Unknown)
 }
 
-static DICT: &str = include_str!("../dict.txt");
+static COMPRESSED_DICT: &[u8] = include_bytes!("../dict.txt.gz");
+static DICT: OnceLock<Vec<String>> = OnceLock::new();
+
+fn get_dict() -> &'static Vec<String> {
+    DICT.get_or_init(|| {
+        let decoder = Decoder::new(COMPRESSED_DICT).expect("Failed to create gzip decoder");
+        let mut decompressed = String::new();
+        std::io::BufReader::new(decoder)
+            .read_to_string(&mut decompressed)
+            .expect("Failed to decompress dictionary");
+        decompressed.lines().map(String::from).collect()
+    })
+}
 
 pub struct Game {
     pub center: char,
@@ -68,8 +83,8 @@ impl Game {
 
     pub fn plays(&self) -> Vec<Play> {
         let regex = self.to_regex();
-        let mut plays: Vec<Play> = DICT
-            .lines()
+        let mut plays: Vec<Play> = get_dict()
+            .iter()
             .filter(|word| word.contains(self.center))
             .filter(|word| regex.is_match(word))
             .map(|word| Play::new(word))
@@ -143,6 +158,6 @@ mod tests {
 
     #[test]
     fn dict() {
-        assert_eq!(DICT.lines().last().unwrap(), "zythum");
+        assert_eq!(get_dict().last().unwrap(), "zythum");
     }
 }
