@@ -58,9 +58,9 @@ class BeeSolver extends HTMLElement {
     this.coreInput.value = "A";
     const simulateInput = async (inputElement, value) => {
       for (let i = 0; i < value.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate typing delay
         inputElement.value = value.slice(0, i + 1);
         inputElement.dispatchEvent(new Event("input", { bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate typing delay
       }
     };
 
