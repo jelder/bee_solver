@@ -86,11 +86,7 @@ class BeeSolver extends HTMLElement {
     this.input.value = "";
     simulateInput(this.input, "AKMOBCE");
 
-    this.input.addEventListener("click", () => {
-      this.input.value = "";
-    });
-
-    this.input.addEventListener("touchstart", () => {
+    this.input.addEventListener("focus", () => {
       this.input.value = "";
     });
   }
