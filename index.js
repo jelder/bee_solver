@@ -7,55 +7,74 @@ class BeeSolver extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          --bs-ls: 2ch;
-          --bs-gap: 1.25;
-          --bs-fz: 1.5em;
-          --_bs-bgsz: calc(var(--bs-ls) + 1ch);
+          --bs-ls: 2ch; /* Letter spacing: 2 character units */
+          --bs-gap: 1.25; /* Gap multiplier for background gradients */
+          --bs-fz: 1.5em; /* Font size */
+          --_bs-bgsz: calc(var(--bs-ls) + 1ch); /* Background segment size (letter spacing + 1 character) */
+          /* Set total digits for the single field (1 yellow + 6 grey = 7) */
+          --bs-digits: 7; 
         }
         :host input:where([type=text]) {
-          all: unset;
-          text-transform: uppercase;
-          caret-color: var(--bs-cc, #333);
-          clip-path: inset(0% calc(var(--bs-ls) / 2) 0% 0%);
-          font-family: ui-monospace, monospace;
-          font-size: var(--bs-fz, 2.5em);
-          inline-size: calc(var(--bs-digits) * var(--_bs-bgsz));
-          letter-spacing: var(--bs-ls);
-          padding-block: var(--bs-pb, 1ch);
-          padding-inline-start: calc(((var(--bs-ls) - 1ch) / 2) * var(--bs-gap));
+          all: unset; /* Remove all default user agent styles */
+          text-transform: uppercase; /* Convert text to uppercase */
+          caret-color: var(--bs-cc, #333); /* Color of the text input caret */
+          clip-path: inset(0% calc(var(--bs-ls) / 2) 0% 0%); /* Clip the input to hide half of the letter spacing on the right */
+          font-family: ui-monospace, monospace; /* Monospace font for consistent character width */
+          font-size: var(--bs-fz, 2.5em); /* Font size for the input text */
+          /* Calculate inline-size (width) based on the new total digits and background segment size */
+          inline-size: calc(var(--bs-digits) * var(--_bs-bgsz)); 
+          letter-spacing: var(--bs-ls); /* Apply letter spacing */
+          padding-block: var(--bs-pb, 1ch); /* Vertical padding */
+          padding-inline-start: calc(((var(--bs-ls) - 1ch) / 2) * var(--bs-gap)); /* Horizontal padding at the start */
+          
+          /* Define multiple background images for layering */
+          background-image: 
+            /* Yellow background for the first character */
+            linear-gradient(
+              90deg, /* Direction of the gradient: from left to right */
+              rgb(247, 218, 33) /* Color of the gradient start (yellow) */ 
+              calc(var(--bs-gap) * var(--bs-ls)), /* Color stop: yellow extends up to this point */
+              transparent /* Second color of the gradient (transparent) */
+              0 /* Color stop: transparent starts at this point (immediately after the yellow) */
+            ),
+            /* Grey background for the remaining characters, designed to repeat */
+            linear-gradient(
+              90deg, /* Direction of the gradient: from left to right */
+              #EEE /* Start color: light grey */
+              calc(var(--bs-gap) * var(--bs-ls)), /* Color stop: grey extends up to this point */
+              transparent /* Second color of the gradient (transparent) */
+              0 /* Color stop: transparent starts at this point (immediately after the grey) */
+            );
+          
+          /* Define positions for each background image */
+          background-position: 
+            0 0, /* Position for yellow gradient: top-left corner */
+            var(--_bs-bgsz) 0; /* Position for grey gradient: starts after the first character's segment */
+          
+          /* Define sizes for each background image */
+          background-size: 
+            var(--_bs-bgsz) 100%, /* Size for yellow gradient: width of one segment, full height */
+            var(--_bs-bgsz) 100%; /* Size for grey gradient: width of one segment, full height (this segment will be repeated) */
+          
+          /* Define repeat behavior for each background image */
+          background-repeat: 
+            no-repeat, /* Yellow background: does not repeat */
+            repeat-x; /* Grey background: repeats horizontally to cover the remaining characters */
         }
-        :host input:where([id=core]) {
-          --bs-digits: 1;
-          --bs-bg: rgb(247, 218, 33);
-          background: linear-gradient(90deg, 
-            var(--bs-bg) calc(var(--bs-gap) * var(--bs-ls)),
-            transparent 0
-          ) 0 0 / var(--_bs-bgsz) 100%;
-        }
-        :host input:where([id=ring]) {
-          --bs-digits: 6;
-          --bs-bg: #EEE;
-          background: linear-gradient(90deg, 
-            var(--bs-bg) calc(var(--bs-gap) * var(--bs-ls)),
-            transparent 0
-          ) 0 0 / var(--_bs-bgsz) 100%;
-        }
+        /* Removed specific ID selectors for core and ring as they are no longer needed */
       </style>
       <form id="inputForm">
-        <input type="text" id="core" required pattern="[A-Za-z]" size="1" minlength="1" maxlength="1" spellcheck="false">
-        <input type="text" id="ring" required pattern="[A-Za-z]" size="6" minlength="6" maxlength="6" spellcheck="false">
+        <input type="text" id="input" required pattern="[A-Za-z]" size="7" minlength="7" maxlength="7" spellcheck="false">
       </form>
       <div id="results"></div>
     `;
 
     this.form = this.shadowRoot.getElementById("inputForm");
-    this.coreInput = this.shadowRoot.getElementById("core");
-    this.ringInput = this.shadowRoot.getElementById("ring");
+    this.input = this.shadowRoot.getElementById("input");
     this.resultsContainer = this.shadowRoot.getElementById("results");
 
     this.updateTable = this.updateTable.bind(this);
 
-    this.coreInput.value = "A";
     const simulateInput = async (inputElement, value) => {
       for (let i = 0; i < value.length; i++) {
         await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate typing delay
@@ -64,8 +83,8 @@ class BeeSolver extends HTMLElement {
       }
     };
 
-    this.ringInput.value = "";
-    simulateInput(this.ringInput, "KMOBCE");
+    this.input.value = "";
+    simulateInput(this.input, "AKMOBCE");
   }
 
   connectedCallback() {
@@ -77,12 +96,22 @@ class BeeSolver extends HTMLElement {
   }
 
   async updateTable() {
-    const core = this.coreInput.value.trim();
-    const ring = this.ringInput.value.trim();
+    this.input.value = [
+      ...new Set(
+        this.input.value
+          .trim()
+          .toUpperCase()
+          .replace(/[^A-Z]/g, "")
+      ),
+    ].join("");
 
-    if (!core || !ring || ring.length != 6) return;
+    const input = this.input.value;
+
+    if (!input || input.length != 7) return;
 
     await init();
+    const core = input.substr(0, 1);
+    const ring = input.slice(1);
     const plays = get_plays(core, ring);
 
     // Group plays by score
