@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-fn search_prefixes(
+fn find_best_solution(
     game: &Vec<Vec<char>>,
     trie: &Trie<char, ()>,
     directions: &[(isize, isize)],
@@ -11,7 +11,8 @@ fn search_prefixes(
     i: usize,
     j: usize,
     prefix: String,
-    found_words: &mut Vec<String>,
+    path: Vec<(usize, usize)>, // Track coordinates of each letter
+    found_words: &mut Vec<(String, Vec<(usize, usize)>)>, // Include word and its path
 ) {
     if visited[i][j] {
         return;
@@ -20,13 +21,16 @@ fn search_prefixes(
     let mut new_prefix = prefix.clone();
     new_prefix.push(game[i][j]);
 
+    let mut new_path = path.clone();
+    new_path.push((i, j)); // Add current coordinates to the path
+
     if !trie.is_prefix_str(&new_prefix) {
         return;
     }
 
     // Add to found_words if the prefix is a complete word
     if trie.contains_key_str(&new_prefix) {
-        found_words.push(new_prefix.clone());
+        found_words.push((new_prefix.clone(), new_path.clone())); // Store word and its path
     }
 
     visited[i][j] = true;
@@ -36,7 +40,7 @@ fn search_prefixes(
         let nj = j as isize + dy;
 
         if ni >= 0 && ni < game.len() as isize && nj >= 0 && nj < game[0].len() as isize {
-            search_prefixes(
+            find_best_solution(
                 game,
                 trie,
                 directions,
@@ -44,12 +48,27 @@ fn search_prefixes(
                 ni as usize,
                 nj as usize,
                 new_prefix.clone(),
+                new_path.clone(),
                 found_words,
             );
         }
     }
 
     visited[i][j] = false;
+}
+
+fn print_word_shape(game: &Vec<Vec<char>>, word: &str, path: &Vec<(usize, usize)>) {
+    let mut shape = vec![vec!['·'; game[0].len()]; game.len()];
+
+    for &(x, y) in path {
+        shape[x][y] = game[x][y];
+    }
+
+    println!("Word: {}", word);
+    for row in shape {
+        println!("{}", row.iter().collect::<String>());
+    }
+    println!();
 }
 
 fn main() {
@@ -102,7 +121,7 @@ fn main() {
 
     for i in 0..game.len() {
         for j in 0..game[0].len() {
-            search_prefixes(
+            find_best_solution(
                 &game,
                 &trie,
                 &directions,
@@ -110,19 +129,19 @@ fn main() {
                 i,
                 j,
                 String::new(),
+                Vec::new(),
                 &mut found_words,
             );
         }
     }
 
-    // Remove duplicates by converting to a HashSet and back to Vec
-    let unique_words: HashSet<String> = found_words.into_iter().collect();
-    let mut found_words: Vec<String> = unique_words.into_iter().collect();
+    // Remove duplicates and sort by length
+    let unique_words: HashSet<(String, Vec<(usize, usize)>)> = found_words.into_iter().collect();
+    let mut found_words: Vec<(String, Vec<(usize, usize)>)> = unique_words.into_iter().collect();
+    found_words.sort_by(|a, b| a.0.len().cmp(&b.0.len()));
 
-    // Sort by length
-    found_words.sort_by(|a, b| a.len().cmp(&b.len()));
-
-    for word in found_words {
-        println!("{}", word);
+    println!("Solution with the most words:");
+    for (word, path) in found_words {
+        print_word_shape(&game, &word, &path);
     }
 }
