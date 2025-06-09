@@ -1,7 +1,20 @@
 use rstrie::Trie;
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+
+fn build_trie() -> Trie<char, ()> {
+    let mut trie: Trie<char, ()> = Trie::new();
+
+    // Include the dictionary file at compile time
+    let dictionary = include_str!("/usr/share/dict/words");
+
+    for word in dictionary.lines() {
+        let word = word.trim().to_ascii_lowercase();
+        if word.len() > 4 {
+            trie.insert(word.chars(), ());
+        }
+    }
+
+    trie
+}
 
 fn find_best_solution(
     game: &Vec<Vec<char>>,
@@ -72,20 +85,7 @@ fn print_word_shape(game: &Vec<Vec<char>>, word: &str, path: &Vec<(usize, usize)
 }
 
 fn main() {
-    let file = File::open("/usr/share/dict/words").expect("Failed to open file");
-    let reader = BufReader::new(file);
-
-    let mut trie: Trie<char, ()> = Trie::new();
-
-    for line in reader.lines() {
-        if let Ok(word) = line {
-            let word = word.trim().to_ascii_lowercase();
-            if word.len() <= 4 {
-                continue;
-            }
-            trie.insert(word.chars(), ());
-        }
-    }
+    let trie = build_trie();
 
     let game_str = "
         ITSMES
@@ -136,7 +136,8 @@ fn main() {
     }
 
     // Remove duplicates and sort by length
-    let unique_words: HashSet<(String, Vec<(usize, usize)>)> = found_words.into_iter().collect();
+    let unique_words: std::collections::HashSet<(String, Vec<(usize, usize)>)> =
+        found_words.into_iter().collect();
     let mut found_words: Vec<(String, Vec<(usize, usize)>)> = unique_words.into_iter().collect();
     found_words.sort_by(|a, b| a.0.len().cmp(&b.0.len()));
 
