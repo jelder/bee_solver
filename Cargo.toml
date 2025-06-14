@@ -15,8 +15,9 @@ gloo-utils = { version = "0.2.0", features = ["serde"] }
 itertools = "0.14.0"
 libflate = "2.1.0"
 regex = "1.11.1"
-rkyv = "0.8.10"
-rstrie = "0.6.0"
+rkyv = { version = "0.8.10", features = ["pointer_width_32", "unaligned"] }
+rkyv_derive = "0.8.10"
+rstrie = { version = "0.6.0", features = ["rkyv"] }
 serde = { version = "1.0.219", features = ["derive"] }
 term_size = "0.3"
 thiserror = "2.0.12"

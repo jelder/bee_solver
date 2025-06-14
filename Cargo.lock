@@ -106,6 +106,7 @@ dependencies = [
  "libflate",
  "regex",
  "rkyv",
+ "rkyv_derive",
  "rstrie",
  "serde",
  "term_size",
@@ -527,6 +528,9 @@ name = "rstrie"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c66021d255b713dd66cb8d6fdacf434ed2e9d0ac0a5a81670d0e2e981ebe0f54"
+dependencies = [
+ "rkyv",
+]
 
 [[package]]
 name = "rustversion"
