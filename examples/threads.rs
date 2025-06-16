@@ -1,4 +1,5 @@
 #![allow(unused)]
+use rayon::prelude::*;
 use rstrie::Trie;
 
 const DIRECTIONS: [(isize, isize); 8] = [
@@ -14,13 +15,15 @@ const DIRECTIONS: [(isize, isize); 8] = [
 
 const GAME_WIDTH: usize = 6;
 const GAME_HEIGHT: usize = 8;
+const TOTAL_CELLS: u64 = (GAME_WIDTH * GAME_HEIGHT) as u64;
+const MIN_WORD_LENGTH: usize = 4; // Minimum word length to consider
 
-type GRID<T> = [[T; GAME_WIDTH]; GAME_HEIGHT];
-struct Game(GRID<char>);
+type Grid<T> = [[T; GAME_WIDTH]; GAME_HEIGHT];
+struct Game(Grid<char>);
 
 impl Game {
     fn new(game_str: &str) -> Self {
-        let mut grid: GRID<char> = [[' '; GAME_WIDTH]; GAME_HEIGHT];
+        let mut grid: Grid<char> = [[' '; GAME_WIDTH]; GAME_HEIGHT];
         let cleaned_game_str: String = game_str.chars().filter(|c| !c.is_whitespace()).collect();
         dbg!(&cleaned_game_str);
         for (i, line) in cleaned_game_str
@@ -47,6 +50,14 @@ struct Coordinate {
     y: u8,
 }
 
+impl Coordinate {
+    /// Returns a u64 with a single bit set representing the coordinate's position on the board.
+    fn mask(&self) -> u64 {
+        let bit_index = self.x as usize * GAME_WIDTH + self.y as usize;
+        1 << bit_index
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Play {
     word: String,
@@ -70,7 +81,7 @@ impl Play {
 }
 
 fn find_plays(game: &Game, trie: &Trie<char, ()>) -> Vec<Play> {
-    let mut visited = [[false; GAME_WIDTH]; GAME_HEIGHT];
+    let mut visited: Grid<bool> = [[false; GAME_WIDTH]; GAME_HEIGHT];
     let mut found_words = Vec::new();
 
     for i in 0..GAME_HEIGHT {
@@ -88,7 +99,7 @@ fn find_plays(game: &Game, trie: &Trie<char, ()>) -> Vec<Play> {
             );
         }
     }
-
+    found_words.sort_by(|a, b| b.word.len().cmp(&a.word.len()));
     found_words
 }
 
@@ -111,23 +122,17 @@ fn find_best_solution(
     new_prefix.push(game.0[i][j]);
 
     let mut new_path = path.clone();
-    new_path.push(Coordinate {
+    let coord = Coordinate {
         x: i as u8,
         y: j as u8,
-    });
-
-    let bit_index = i * GAME_WIDTH + j;
-    let new_path_mask = mask | (1 << bit_index);
-    // println!(
-    //     "Visiting cell {:?} ({}, {}), bit_index: {}, mask: {:b}",
-    //     game.0[i][j], i, j, bit_index, new_path_mask
-    // );
-
-    // dbg!(&new_prefix, trie.is_prefix_str(&new_prefix));
+    };
+    new_path.push(coord);
 
     if !trie.is_prefix_str(&new_prefix) {
         return;
     }
+
+    let new_path_mask = new_path.iter().fold(0, |acc, coord| acc | coord.mask());
 
     if trie.contains_key_str(&new_prefix) {
         plays.push(Play {
@@ -159,6 +164,136 @@ fn find_best_solution(
     }
 
     visited[i][j] = false;
+}
+
+fn find_largest_compatible_group(plays: &[Play], preselected: &[Play]) -> Vec<Play> {
+    // Calculate the mask for the preselected plays
+    let preselected_mask: u64 = preselected.iter().fold(0, |acc, play| acc | play.mask);
+
+    // Ensure preselected plays are compatible with each other
+    assert!(
+        preselected
+            .iter()
+            .all(|play| preselected_mask & play.mask == play.mask),
+        "Preselected plays are not compatible with each other"
+    );
+
+    // Split the plays into chunks and process them in parallel
+    let largest_group = plays
+        .par_iter()
+        .enumerate()
+        .map(|(index, _)| {
+            let mut largest_group = preselected.to_vec();
+
+            fn backtrack(
+                plays: &[Play],
+                index: usize,
+                current_group: &mut Vec<Play>,
+                current_mask: u64,
+                largest_group: &mut Vec<Play>,
+            ) {
+                if index == plays.len() {
+                    // Update the largest group if the current group is larger
+                    if current_group.len() > largest_group.len() {
+                        *largest_group = current_group.clone();
+                        eprintln!(
+                            "New largest group found with {} plays: {:?}",
+                            largest_group.len(),
+                            largest_group.iter().map(|p| &p.word).collect::<Vec<_>>()
+                        );
+                    }
+                    return;
+                }
+
+                let play = &plays[index];
+
+                // Option 1: Include the current play if compatible
+                if current_mask & play.mask == 0 {
+                    current_group.push(play.clone());
+                    backtrack(
+                        plays,
+                        index + 1,
+                        current_group,
+                        current_mask | play.mask,
+                        largest_group,
+                    );
+                    current_group.pop();
+                }
+
+                // Option 2: Skip the current play
+                backtrack(plays, index + 1, current_group, current_mask, largest_group);
+            }
+
+            backtrack(
+                plays,
+                index,
+                &mut largest_group.clone(),
+                preselected_mask,
+                &mut largest_group,
+            );
+            largest_group
+        })
+        .max_by_key(|group| group.len()) // Find the largest group across all threads
+        .unwrap_or_default();
+
+    largest_group
+}
+
+fn find_all_compatible_groups(plays: &[Play], preselected: &[Play]) -> Vec<Vec<Play>> {
+    let preselected_mask: u64 = preselected.iter().fold(0, |acc, play| acc | play.mask);
+
+    assert!(
+        preselected
+            .iter()
+            .all(|play| preselected_mask & play.mask == play.mask),
+        "Preselected plays are not compatible with each other"
+    );
+
+    let mut all_groups = Vec::new();
+
+    fn backtrack(
+        plays: &[Play],
+        index: usize,
+        current_group: &mut Vec<Play>,
+        current_mask: u64,
+        all_groups: &mut Vec<Vec<Play>>,
+    ) {
+        if index == plays.len() {
+            let leftovers = TOTAL_CELLS - current_mask.count_ones() as u64;
+            if leftovers < MIN_WORD_LENGTH as u64 {
+                all_groups.push(current_group.clone());
+            }
+            return;
+        }
+
+        let play = &plays[index];
+
+        // Option 1: Include the current play if compatible
+        if current_mask & play.mask == 0 {
+            current_group.push(play.clone());
+            backtrack(
+                plays,
+                index + 1,
+                current_group,
+                current_mask | play.mask,
+                all_groups,
+            );
+            current_group.pop();
+        }
+
+        // Option 2: Skip the current play
+        backtrack(plays, index + 1, current_group, current_mask, all_groups);
+    }
+
+    backtrack(
+        plays,
+        0,
+        &mut preselected.to_vec(),
+        preselected_mask,
+        &mut all_groups,
+    );
+
+    all_groups
 }
 
 #[cfg(test)]
@@ -270,6 +405,18 @@ mod tests {
         let plays = find_plays(&game, &trie);
         assert!(plays.is_empty(), "No words should be found");
     }
+
+    #[test]
+    fn test_coordinate_mask() {
+        let coord = Coordinate { x: 2, y: 3 };
+        let mask = coord.mask();
+        assert_eq!(
+            mask.count_ones(),
+            1,
+            "Mask should have exactly one bit set: {:064b}",
+            mask,
+        );
+    }
 }
 
 fn build_trie() -> Trie<char, ()> {
@@ -279,7 +426,7 @@ fn build_trie() -> Trie<char, ()> {
 
     for word in dictionary.lines() {
         let word = word.trim().to_ascii_lowercase();
-        if word.len() > 3 {
+        if word.len() > MIN_WORD_LENGTH {
             trie.insert(word.chars(), ());
         }
     }
@@ -304,9 +451,44 @@ fn main() {
     );
 
     let plays = find_plays(&game, &trie);
-    dbg!(&plays.len());
-    for play in plays {
-        println!("Found word: {}", play.word);
-        play.print_ascii_art(&game);
+
+    let hints: Vec<Play> = vec![];
+    let hints = plays
+        .iter()
+        .filter(|p| {
+            false
+            // || p.word == "polite"
+            // || p.word == "listen"
+            // || p.word == "respect"
+            // || p.word == "thank"
+            // || p.word == "share"
+            // || p.word == "apologize"
+            // || p.word == "consider"
+        })
+        .cloned()
+        .collect::<Vec<Play>>();
+
+    // dbg!(&hints.len());
+    let all_groups = find_all_compatible_groups(&plays, &hints);
+
+    println!("All valid groups of plays ({} groups):", all_groups.len());
+    for (i, group) in all_groups.iter().enumerate() {
+        // Calculate grid coverage
+        let total_cells = (GAME_WIDTH * GAME_HEIGHT) as u64;
+        let group_mask: u64 = group.iter().fold(0, |acc, play| acc | play.mask);
+        let covered_cells = group_mask.count_ones() as u64;
+        let coverage_percentage = (covered_cells as f64 / total_cells as f64) * 100.0;
+        let leftovers = total_cells - covered_cells;
+
+        println!(
+            "Group {} ({} plays, {leftovers} leftovers {coverage_percentage:.2}% grid coverage):",
+            i + 1,
+            group.len(),
+        );
+        for play in group {
+            println!("Word: {}", play.word);
+            // play.print_ascii_art(&game);
+        }
+        println!("---");
     }
 }

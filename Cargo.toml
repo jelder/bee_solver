@@ -9,14 +9,12 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 ansi_term = "0.12.1"
-bincode = "2.0.1"
 clap = { version = "4.5.34", features = ["derive"] }
 gloo-utils = { version = "0.2.0", features = ["serde"] }
 itertools = "0.14.0"
 libflate = "2.1.0"
+rayon = "1.10.0"
 regex = "1.11.1"
-rkyv = { version = "0.8.10", features = ["pointer_width_32", "unaligned"] }
-rkyv_derive = "0.8.10"
 rstrie = { version = "0.6.0", features = ["rkyv"] }
 serde = { version = "1.0.219", features = ["derive"] }
 term_size = "0.3"
